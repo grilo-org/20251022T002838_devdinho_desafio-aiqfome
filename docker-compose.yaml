@@ -1,0 +1,51 @@
+services:
+  django:
+    container_name: aiqfome_service
+    build:
+      context: ./service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./service:/app
+    depends_on:
+      - db
+    env_file: '.env'
+    restart: always
+
+  db:
+    env_file: '.env'
+    container_name: aiqfome_db
+    image: postgres:17
+    environment:
+      POSTGRES_DB: aiqfome_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports: 
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+  lint:
+    container_name: aiqfome_lint
+    build:
+      context: ./service
+      dockerfile: Dockerfile
+    command: /bin/sh -c "service/scripts/start-lint.sh service/src"
+    volumes:
+      - .:/app
+    env_file: '.env'
+    restart: on-failure
+    
+  test:
+    container_name: aiqfome_test
+    build:
+      context: ./service
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    env_file: '.env'
+    command: /bin/sh -c "scripts/run_unit_tests.sh"
+    
+volumes:
+  postgres_data:
